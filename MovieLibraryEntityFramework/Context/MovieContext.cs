@@ -15,7 +15,7 @@ namespace MovieLibraryEntityFramework
         public DbSet<UserMovie> UserMovies { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"#####");
+            optionsBuilder.UseSqlServer(@"");
         }
     }
 }

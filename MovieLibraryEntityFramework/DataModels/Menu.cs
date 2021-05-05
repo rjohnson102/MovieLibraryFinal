@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace MovieLibraryEntityFramework
 {
@@ -19,7 +20,11 @@ namespace MovieLibraryEntityFramework
                 {2, "Search Movie"},
                 {3, "Add Movie"},
                 {4, "Update Movie"},
-                {5, "Delete Movie"}
+                {5, "Delete Movie"},
+                {6, "Add New User"},
+                {7, "Display User Info" },
+                {8, "Add Movie Rating" },
+                
             };
             parse = new Parse();            
         }
@@ -46,6 +51,15 @@ namespace MovieLibraryEntityFramework
                 case 5:
                     DeleteMovieContext();
                     Print();
+                    break;
+                case 6:
+                    AddNewUserContext();
+                    break;
+                case 7:
+                    //DisplayUsersContext();
+                    break;
+                case 8:
+                    //AddMovieRatingContext();
                     break;
             }
         }
@@ -171,10 +185,77 @@ namespace MovieLibraryEntityFramework
             Movie movie = new Movie
             {
                 Title = name,
-                release_date = releaseDate
+                ReleaseDate = releaseDate
             };
             context.AddMovie(movie);
         }
-        
+
+        public void AddNewUserContext()
+        {
+            bool isInt = false;
+            long age = 0;
+            string gender = "";
+            string zipCode = "";
+            Occupation occupation = new Occupation();
+            while (isInt == false)
+            {
+                Console.WriteLine("\nEnter Age: \n");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if(isInt == true)
+                {
+                    age = Convert.ToInt32(input);
+                }
+            }
+            isInt = false;
+            while(gender.ToLower() != "m" || gender.ToLower() != "f")
+            {
+                Console.WriteLine("\nEnter Gender: (M/F)\n");
+                gender = Console.ReadLine();
+                if(gender.ToLower() == "m" || gender.ToLower() == "f")
+                {
+                    break;
+                }
+            }
+            Console.WriteLine("\nEnter Zip Code\n");
+            zipCode = Console.ReadLine();
+            
+
+            using(var db = new MovieContext())
+            {
+                var occupations = db.Occupations.ToList();
+                foreach(var occupation1 in occupations)
+                {
+                    Console.WriteLine("(" +occupation1.Id + ") " + occupation1.Name);
+                }
+            }
+
+            while (isInt == false)
+            {
+                Console.WriteLine("\n~Enter Occupation ID~\n");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    int id = Convert.ToInt32(input); 
+                    using(var db = new MovieContext())
+                    {
+                        occupation = db.Occupations.FirstOrDefault(o => o.Id == id);                        
+                    }
+                }
+            }
+
+            User user = new User()
+            {                  
+                Age = age,
+                Gender = gender,
+                ZipCode = zipCode,   
+                Occupation = occupation
+            };            
+            context.AddNewUser(user);
+
+        }
+
+
     }
 }

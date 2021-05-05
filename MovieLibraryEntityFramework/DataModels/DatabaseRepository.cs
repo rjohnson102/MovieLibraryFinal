@@ -15,7 +15,7 @@ namespace MovieLibraryEntityFramework
                 Console.WriteLine();
                 foreach (var movie in movies)
                 {
-                    Console.WriteLine(movie.Id + ". " + movie.Title + "\tRelease Date: " + movie.release_date);
+                    Console.WriteLine(movie.Id + ". " + movie.Title + "\tRelease Date: " + movie.ReleaseDate);
                 }
                 Console.WriteLine();
             }
@@ -76,6 +76,17 @@ namespace MovieLibraryEntityFramework
         public void UpdateMovie(int Id)
         {
             
+        }
+
+        public void AddNewUser(User user)
+        {
+            using(var db = new MovieContext())
+            {
+                db.Users.Add(user);                   
+                db.SaveChanges();
+
+                
+            }
         }
     }
 }
