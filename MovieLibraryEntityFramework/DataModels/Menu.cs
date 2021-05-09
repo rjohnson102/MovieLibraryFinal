@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using NLog;
 
 namespace MovieLibraryEntityFramework
 {
     class Menu
     {
+        Logger logger = LogManager.GetCurrentClassLogger();
+        public bool isRunning = true;
         private static Dictionary<int, string> menuOptions;
         private static Parse parse;
         private static DatabaseRepository context;
@@ -24,6 +27,8 @@ namespace MovieLibraryEntityFramework
                 {6, "Add New User"},
                 {7, "Display User Info" },
                 {8, "Add Movie Rating" },
+                {9, "Top Rated Movie" },
+                {10, "End" }
                 
             };
             parse = new Parse();            
@@ -34,7 +39,7 @@ namespace MovieLibraryEntityFramework
             switch (option)
             {
                 case 1:
-                    context.ListAllMovies();
+                    ListAllMoviesContext();
                     Print();
                     break;
                 case 2:
@@ -42,7 +47,8 @@ namespace MovieLibraryEntityFramework
                     Print();
                     break;
                 case 3:
-                    AddMovieContext();
+                    Movie movie = AddMovieContext();
+                    context.AddMovie(movie);
                     break;
                 case 4:
                     UpdateMovieContext();
@@ -56,10 +62,16 @@ namespace MovieLibraryEntityFramework
                     AddNewUserContext();
                     break;
                 case 7:
-                    //DisplayUsersContext();
+                    DisplayUsersContext();
                     break;
                 case 8:
-                    //AddMovieRatingContext();
+                    AddMovieRatingContext();
+                    break;
+                case 9:
+                    TopRatedContext();
+                    break;
+                case 10:
+                    isRunning = false;
                     break;
             }
         }
@@ -93,9 +105,27 @@ namespace MovieLibraryEntityFramework
                 }                
             }
             Console.WriteLine("\n~Enter Valid Option~\n");
+            logger.Error("Menu Input Not Valid");
             Print();
             return -1;
         }
+
+        private void ListAllMoviesContext() {
+            bool isInt = false;
+            int top = 10;
+            while (isInt == false)
+            {
+                Console.WriteLine("How Many Movies Would You like to view?");
+                string entry = Console.ReadLine();
+                isInt = parse.ParseInt(entry);
+                if (isInt)
+                {
+                    top = Convert.ToInt32(entry);
+                }
+            }
+            context.ListAllMovies(top);
+        }
+
 
         private void SearchMovieContext()
         {
@@ -107,7 +137,7 @@ namespace MovieLibraryEntityFramework
         private void DeleteMovieContext()
         {
             Console.WriteLine();
-            context.ListAllMovies();
+            SearchMovieContext();
             Console.WriteLine();
             Console.WriteLine("Which movie would you like to delete? Enter ID:");
             string input = Console.ReadLine();
@@ -120,6 +150,7 @@ namespace MovieLibraryEntityFramework
             else
             {
                 Console.WriteLine("\n~Enter Valid Movie ID~\n");
+                logger.Error("DeleteMovieContext() Invalid Movie ID");
                 DeleteMovieContext();
             }
 
@@ -128,7 +159,7 @@ namespace MovieLibraryEntityFramework
         private void UpdateMovieContext()
         {
             Console.WriteLine();
-            context.ListAllMovies();
+            SearchMovieContext();
             Console.WriteLine();
             Console.WriteLine("Which movie would you like to Update? Enter ID:");
             string input = Console.ReadLine();
@@ -138,17 +169,21 @@ namespace MovieLibraryEntityFramework
                 int choice = Convert.ToInt32(input);
                 context.DeleteMovie(choice);
                 Console.WriteLine("\n~New Movie Details~\n");
-                AddMovieContext();
+                Movie movie = AddMovieContext();
+                context.DeleteMovie(movie.Id);
+                context.AddMovie(movie);
             }
             else
             {
                 Console.WriteLine("\n~Enter Valid Movie ID~\n");
+                logger.Error("UpdateMovieContext() Invalid Movie ID");
                 UpdateMovieContext();
             }
         }
 
-        private void AddMovieContext()
+        private Movie AddMovieContext()
         {
+            DateTime releaseDate = DateTime.Now;
             bool isInt = false;
             string dateTime;
             int month=0;
@@ -162,7 +197,10 @@ namespace MovieLibraryEntityFramework
                 Console.Write("Month(mm): ");
                 string entry = Console.ReadLine();
                 isInt = parse.ParseInt(entry);
-                month = Convert.ToInt32(entry);
+                if (isInt)
+                {
+                    month = Convert.ToInt32(entry);
+                }                
             }
             isInt = false;
             while (isInt == false)
@@ -170,7 +208,10 @@ namespace MovieLibraryEntityFramework
                 Console.Write("Day(dd): ");
                 string entry = Console.ReadLine();
                 isInt = parse.ParseInt(entry);
-                day = Convert.ToInt32(entry);
+                if (isInt)
+                {
+                    day = Convert.ToInt32(entry);
+                }                
             }
             isInt = false;
             while (isInt == false)
@@ -178,19 +219,30 @@ namespace MovieLibraryEntityFramework
                 Console.Write("Year(yyyy): ");
                 string entry = Console.ReadLine();
                 isInt = parse.ParseInt(entry);
-                year = Convert.ToInt32(entry);
+                if (isInt)
+                {
+                    year = Convert.ToInt32(entry);
+                }                
             }
             dateTime = month + "/" + day + "/" + year;
-            DateTime releaseDate = DateTime.Parse(dateTime);
+            try
+            {
+                releaseDate = DateTime.Parse(dateTime);
+            }
+            catch
+            {
+                Console.WriteLine("Invalid DateTime. Date set to Current Time.");
+                logger.Error("AddMovieContext() DateTime Invalid");
+            }
             Movie movie = new Movie
             {
                 Title = name,
                 ReleaseDate = releaseDate
             };
-            context.AddMovie(movie);
+            return movie;
         }
 
-        public void AddNewUserContext()
+        private void AddNewUserContext()
         {
             bool isInt = false;
             long age = 0;
@@ -208,11 +260,11 @@ namespace MovieLibraryEntityFramework
                 }
             }
             isInt = false;
-            while(gender.ToLower() != "m" || gender.ToLower() != "f")
+            while(gender.ToUpper() != "M" || gender.ToUpper() != "M")
             {
                 Console.WriteLine("\nEnter Gender: (M/F)\n");
-                gender = Console.ReadLine();
-                if(gender.ToLower() == "m" || gender.ToLower() == "f")
+                gender = Console.ReadLine().ToUpper();
+                if(gender.ToUpper() == "M" || gender.ToUpper() == "F")
                 {
                     break;
                 }
@@ -240,7 +292,16 @@ namespace MovieLibraryEntityFramework
                     int id = Convert.ToInt32(input); 
                     using(var db = new MovieContext())
                     {
-                        occupation = db.Occupations.FirstOrDefault(o => o.Id == id);                        
+                        try
+                        {
+                            occupation = db.Occupations.FirstOrDefault(o => o.Id == id);
+                        }
+                        catch
+                        {
+                            logger.Error("AddNewUserContext() Invalid Occupation ID");
+                            Console.WriteLine("Invalid Occupation ID");
+                            isInt = false;
+                        }
                     }
                 }
             }
@@ -249,11 +310,144 @@ namespace MovieLibraryEntityFramework
             {                  
                 Age = age,
                 Gender = gender,
-                ZipCode = zipCode,   
+                ZipCode = zipCode, 
                 Occupation = occupation
             };            
-            context.AddNewUser(user);
+            context.AddNewUser(user, occupation);
 
+        }
+
+        private void DisplayUsersContext()
+        {
+            bool isInt = false;
+            int userId = 0;
+            while (isInt == false)
+            {
+                Console.WriteLine("\nEnter User ID: \n");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    userId = Convert.ToInt32(input);
+                }
+            }
+            context.DisplayUserInfo(userId);
+        }
+
+        private void AddMovieRatingContext()
+        {
+            bool isInt = false;
+            int userId = 0;
+            int movieId = 0;
+            int rating = 0;
+            while (isInt == false)
+            {
+                Console.WriteLine("\n~Enter User ID~\n");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    userId = Convert.ToInt32(input);
+                }
+            }
+            isInt = false;
+            SearchMovieContext();            
+            while (isInt == false)
+            {
+                Console.WriteLine("Enter Movie ID to confirm");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    movieId = Convert.ToInt32(input);
+                }
+            }
+            isInt = false;
+            while (isInt == false)
+            {
+                Console.WriteLine("Enter Rating : (1-5)");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    rating = Convert.ToInt32(input);
+                }
+                if(rating > 0 && rating < 6)
+                {
+                    continue;
+                }
+                else
+                {
+                    isInt = false;
+                }
+            }
+
+            User user = new User();
+            Movie movie = new Movie();
+
+            using(var db = new MovieContext())
+            {
+                user = db.Users.FirstOrDefault(u => u.Id == userId);
+            }
+            using (var db = new MovieContext())
+            {
+                movie = db.Movies.FirstOrDefault(m => m.Id == movieId);
+            }
+
+
+            context.AddMovieRating(user, movie, rating);
+        }
+
+        private void TopRatedContext()
+        {
+            bool isInt = false;
+            int choice = 0;
+            while (isInt == false)
+            {
+                Console.WriteLine("\n~List By~\n");
+                Console.WriteLine("(1) Age Bracket");
+                Console.WriteLine("(2) Occupation");
+                string input = Console.ReadLine();
+                isInt = parse.ParseInt(input);
+                if (isInt == true)
+                {
+                    choice = Convert.ToInt32(input);
+                }
+                if(choice == 1 || choice == 2)
+                {
+                    switch (choice)
+                    {
+                        case 1:                            
+                            context.ListTopRatedAge(10, 20);
+                            context.ListTopRatedAge(20, 30);
+                            context.ListTopRatedAge(30, 40);
+                            context.ListTopRatedAge(40, 50);
+                            context.ListTopRatedAge(50, 60);
+                            context.ListTopRatedAge(60, 100);                            
+                            break;
+                        case 2:
+                            using (var db = new MovieContext())
+                            {
+                                var occ = from o in db.Occupations
+                                          select new
+                                          {
+                                              o.Id,
+                                              o.Name
+                                          };
+                                foreach (var t in occ)
+                                {
+                                    context.ListTopRatedOccupation(t.Id, t.Name);
+                                }
+                            }                            
+                            break;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("\n~Invalid Option~\n");
+                    logger.Error("TopRatedContext() Invalid Option");
+                }
+            }
         }
 
 
