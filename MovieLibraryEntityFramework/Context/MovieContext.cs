@@ -15,7 +15,7 @@ namespace MovieLibraryEntityFramework
         public DbSet<UserMovie> UserMovies { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=bitsql.wctc.edu;Database=rjohnson102_22097_MovieDatabase;User ID=rjohnson102;Password=000528631");
+            optionsBuilder.UseSqlServer(@"");
         }
     }
 }
